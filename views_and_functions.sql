@@ -1,4 +1,3 @@
-
 -- 1. Т2. Получение сводных показателей дашборда
 CREATE OR REPLACE VIEW v_dashboard_stats AS
 SELECT
