@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="card p-4">
+    <h4 class="mb-3">Выполнение SQL-запроса</h4>
+    
+    {% if role != 'admin' %}
+    <div class="alert alert-warning">Роль «Менеджер» не имеет прав на выполнение произвольных SQL-запросов.</div>
+    {% endif %}
+
+    <div class="mb-3">
+        <textarea id="sqlInput" class="form-control" rows="5" {% if role != 'admin' %}disabled{% endif %}>SELECT * FROM rooms;</textarea>
+    </div>
+    <button id="runBtn" class="btn btn-primary" {% if role != 'admin' %}disabled{% endif %} onclick="executeSQL()">Выполнить</button>
+    <span id="status" class="ms-3 text-muted"></span>
+
+    <div class="table-responsive mt-4">
+        <table class="table table-bordered table-striped" id="resultTable">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+function executeSQL() {
+    const sql = document.getElementById('sqlInput').value;
+    const statusSpan = document.getElementById('status');
+    statusSpan.innerText = 'Выполняется...';
+
+    fetch('/api/execute_sql', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({sql: sql})
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) {
+            statusSpan.innerText = 'Ошибка!';
+            alert(data.error);
+            return;
+        }
+        statusSpan.innerText = data.status;
+        const thead = document.querySelector('#resultTable thead');
+        const tbody = document.querySelector('#resultTable tbody');
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+
+        if (data.columns.length > 0) {
+            let headerRow = '<tr>';
+            data.columns.forEach(col => headerRow += `<th>${col}</th>`);
+            headerRow += '</tr>';
+            thead.innerHTML = headerRow;
+
+            data.rows.forEach(row => {
+                let bodyRow = '<tr>';
+                row.forEach(cell => bodyRow += `<td>${cell}</td>`);
+                bodyRow += '</tr>';
+                tbody.innerHTML += bodyRow;
+            });
+        }
+    })
+    .catch(err => {
+        statusSpan.innerText = 'Сетевая ошибка';
+        alert(err);
+    });
+}
+</script>
+{% endblock %}

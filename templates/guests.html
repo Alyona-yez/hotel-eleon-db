@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card card-custom p-4 h-100">
+            <h4 class="mb-3"><i class="fa-solid fa-user-plus text-warning"></i> Новый гость</h4>
+            <div id="messageBox"></div>
+            <form id="addGuestForm">
+                <div class="mb-3"><label class="form-label">Фамилия *</label><input type="text" class="form-control" id="lastName" required></div>
+                <div class="mb-3"><label class="form-label">Имя *</label><input type="text" class="form-control" id="firstName" required></div>
+                <div class="mb-3"><label class="form-label">Отчество</label><input type="text" class="form-control" id="middleName"></div>
+                <div class="mb-3"><label class="form-label">Паспорт *</label><input type="text" class="form-control" id="passport" placeholder="1234 567890" required></div>
+                <div class="mb-4"><label class="form-label">Телефон</label><input type="text" class="form-control" id="phone"></div>
+                <button type="submit" class="btn btn-primary w-100">Сохранить в базу</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card card-custom p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4 class="mb-0"><i class="fa-solid fa-address-book text-warning"></i> Список постояльцев</h4>
+                <span id="guestCount" class="badge bg-secondary">Загрузка...</span>
+            </div>
+            <div class="input-group mb-3">
+                <input type="text" id="searchPassport" class="form-control" placeholder="Поиск по паспорту..." oninput="loadGuests()">
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover" id="guestsTable">
+                    <thead><tr><th>ID</th><th>Фамилия</th><th>Имя</th><th>Отчество</th><th>Паспорт</th><th>Телефон</th><th>Действия</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для подтверждения удаления -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-0">
+                <h5 class="modal-title"><i class="fa-solid fa-triangle-exclamation"></i> Внимание</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-4">
+                Вы действительно хотите удалить гостя <strong id="deleteGuestName" class="text-danger"></strong>?
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Да, удалить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showMessage(text, type) {
+    const box = document.getElementById('messageBox');
+    box.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show py-2">${text}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    setTimeout(() => box.innerHTML = '', 4000);
+}
+
+function loadGuests() {
+    const searchVal = document.getElementById('searchPassport').value.toLowerCase();
+    
+    fetch('/api/guests').then(res => res.json()).then(data => {
+        const tbody = document.querySelector('#guestsTable tbody');
+        tbody.innerHTML = '';
+        
+        // Фильтруем прямо в браузере
+        const filteredRows = data.rows.filter(row => row[4].toLowerCase().includes(searchVal));
+        
+        document.getElementById('guestCount').innerText = 'Всего: ' + filteredRows.length;
+        
+        filteredRows.forEach(row => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${row[0]}</td><td><strong>${row[1]}</strong></td><td>${row[2]}</td>
+                    <td>${row[3] || '-'}</td><td>${row[4]}</td><td>${row[5] || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-danger" onclick="askDeleteGuest(${row[0]}, '${row[1]} ${row[2]}')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+        });
+    });
+}
+
+let guestIdToDelete = null;
+let deleteModal = null;
+
+function askDeleteGuest(id, name) {
+    // Инициализируем модальное окно при первом клике, если еще не создано
+    if (!deleteModal) {
+        deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    }
+    guestIdToDelete = id;
+    document.getElementById('deleteGuestName').innerText = name;
+    deleteModal.show();
+}
+
+// Слушатель кнопки удаления подключаем сразу
+document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+    if (!guestIdToDelete) return;
+    
+    fetch(`/api/guests/${guestIdToDelete}`, { method: 'DELETE' })
+    .then(res => res.json())
+    .then(data => {
+        if (deleteModal) deleteModal.hide();
+        if (data.error) {
+            showMessage(data.error, 'danger');
+        } else {
+            showMessage(data.status, 'success');
+            loadGuests();
+        }
+        guestIdToDelete = null;
+    });
+});
+
+// Обработка добавления гостя
+document.getElementById('addGuestForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+        last_name: document.getElementById('lastName').value,
+        first_name: document.getElementById('firstName').value,
+        middle_name: document.getElementById('middleName').value,
+        passport: document.getElementById('passport').value,
+        phone: document.getElementById('phone').value
+    };
+    fetch('/api/guests', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+    }).then(res => res.json()).then(data => {
+        if (data.error) showMessage(data.error, 'danger');
+        else { 
+            showMessage(data.status, 'success'); 
+            document.getElementById('addGuestForm').reset(); 
+            loadGuests(); 
+        }
+    });
+});
+
+// Загружаем данные только когда страница полностью готова
+document.addEventListener('DOMContentLoaded', () => {
+    loadGuests();
+});
+</script>
+{% endblock %}

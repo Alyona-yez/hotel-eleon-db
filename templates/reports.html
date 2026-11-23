@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card card-custom p-4">
+    <h3 class="mb-4"><i class="fa-solid fa-chart-line text-warning"></i> Отчеты и Аналитика</h3>
+
+    <!-- Вкладки -->
+    <ul class="nav nav-tabs mb-4" id="reportTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-checkouts">Выезжают</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-archive">Архив за год</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-search">Поиск брони</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-room">Инфо по номеру</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-analytics">Аналитика</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-reviews">Отзывы</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-salary">Зарплаты</button></li>
+    </ul>
+
+    <!-- Содержимое вкладок -->
+    <div class="tab-content">
+        
+        <!-- 1. Выезжают сегодня/завтра -->
+        <div class="tab-pane fade show active" id="tab-checkouts">
+            <button class="btn btn-primary mb-3" onclick="loadCheckouts()">Обновить данные</button>
+            <div class="table-responsive"><table class="table table-hover" id="table-checkouts"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- 2. Архив -->
+        <div class="tab-pane fade" id="tab-archive">
+            <button class="btn btn-primary mb-3" onclick="loadArchive()">Загрузить архив</button>
+            <div class="table-responsive"><table class="table table-hover" id="table-archive"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- 3. Поиск брони -->
+        <div class="tab-pane fade" id="tab-search">
+            <div class="input-group mb-3 w-50">
+                <input type="text" class="form-control" id="searchQuery" placeholder="Введите имя гостя или организацию...">
+                <button class="btn btn-primary" onclick="searchBooking()">Найти</button>
+            </div>
+            <div class="table-responsive"><table class="table table-hover" id="table-search"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- 4. Инфо по номеру -->
+        <div class="tab-pane fade" id="tab-room">
+            <div class="input-group mb-3 w-50">
+                <input type="text" class="form-control" id="roomQuery" placeholder="Введите номер комнаты (например, 101)">
+                <button class="btn btn-primary" onclick="searchRoom()">Показать</button>
+            </div>
+            <div class="table-responsive"><table class="table table-hover" id="table-room"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- 5. Аналитика -->
+        <div class="tab-pane fade" id="tab-analytics">
+            <div class="mb-3 d-flex flex-wrap gap-2 align-items-center">
+                <!-- Динамический отчет по загрузке -->
+                <div class="input-group input-group-sm" style="width: auto;">
+                    <span class="input-group-text">Период:</span>
+                    <input type="date" id="loadStart" class="form-control" style="width: 130px;">
+                    <span class="input-group-text">-</span>
+                    <input type="date" id="loadEnd" class="form-control" style="width: 130px;">
+                    <button class="btn btn-outline-primary" onclick="loadLoadReport()">Загрузка фонда</button>
+                </div>
+
+                <button class="btn btn-outline-primary btn-sm" onclick="loadAnalytics(4)">Оклады выше среднего</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadAnalytics(5)">Популярные услуги</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadAnalytics(6)">Выручка по месяцам</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadAnalytics(7)">Задолженности</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadAnalytics(8)">Длительность по категориям</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadAnalytics(9)">Рейтинг номеров</button>
+                <button class="btn btn-outline-primary btn-sm" onclick="loadAnalytics(10)">Способы оплаты</button>
+            </div>
+            <div class="table-responsive"><table class="table table-hover" id="table-analytics"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- 6. Отзывы -->
+        <div class="tab-pane fade" id="tab-reviews">
+            <button class="btn btn-primary mb-3" onclick="loadReviews()">Обновить</button>
+            <button class="btn btn-success mb-3 ms-2" data-bs-toggle="modal" data-bs-target="#addReviewModal"><i class="fa-solid fa-pen-to-square"></i> Зарегистрировать отзыв</button>
+            <div class="table-responsive"><table class="table table-hover" id="table-reviews"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+        <!-- 7. Зарплаты -->
+        <div class="tab-pane fade" id="tab-salary">
+            <button class="btn btn-primary mb-3" onclick="loadSalary()">Обновить</button>
+            <button class="btn btn-success mb-3 ms-2" data-bs-toggle="modal" data-bs-target="#addSalaryModal"><i class="fa-solid fa-calculator"></i> Рассчитать зарплату</button>
+            <div class="table-responsive"><table class="table table-hover" id="table-salary"><thead></thead><tbody></tbody></table></div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Модальное окно: Добавить отзыв -->
+<div class="modal fade" id="addReviewModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-primary text-white border-0"><h5 class="modal-title">Регистрация отзыва</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="reviewForm"><div class="mb-3"><label class="form-label">Гость</label><select class="form-select" id="revGuest" required></select></div><div class="mb-3"><label class="form-label">Номер</label><input type="text" class="form-control" id="revRoom" placeholder="Например: 101" required></div><div class="mb-3"><label class="form-label">Оценка (1-5)</label><input type="number" class="form-control" id="revRating" min="1" max="5" value="5" required></div><div class="mb-3"><label class="form-label">Текст отзыва</label><textarea class="form-control" id="revText" rows="3" required></textarea></div><button type="submit" class="btn btn-primary w-100">Сохранить</button></form></div></div></div>
+</div>
+
+<!-- Модальное окно: Расчет зарплаты -->
+<div class="modal fade" id="addSalaryModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content border-0 shadow"><div class="modal-header bg-success text-white border-0"><h5 class="modal-title"><i class="fa-solid fa-calculator"></i> Начисление зарплаты</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div><div class="modal-body"><form id="salaryForm"><div class="mb-3"><label class="form-label">Сотрудник</label><select class="form-select" id="salEmp" required></select></div><div class="mb-3"><label class="form-label">Месяц (ГГГГ-ММ)</label><input type="text" class="form-control" id="salMonth" placeholder="2026-12" required></div><div class="row"><div class="col-6 mb-3"><label class="form-label">Премия (руб)</label><input type="number" class="form-control" id="salBonus" value="0" required></div><div class="col-6 mb-3"><label class="form-label">Вычет (руб)</label><input type="number" class="form-control" id="salDeduct" value="0" required></div></div><button type="submit" class="btn btn-success w-100 mt-2">Рассчитать и сохранить</button></form></div></div></div>
+</div>
+
+<script>
+// Универсальная функция заполнения таблицы
+function fillTable(tableId, columns, rows) {
+    const thead = document.querySelector(`#${tableId} thead`);
+    const tbody = document.querySelector(`#${tableId} tbody`);
+    thead.innerHTML = ''; tbody.innerHTML = '';
+    let trHead = '<tr>'; columns.forEach(c => trHead += `<th>${c}</th>`); trHead += '</tr>';
+    thead.innerHTML = trHead;
+    rows.forEach(row => {
+        let trBody = '<tr>'; row.forEach(cell => trBody += `<td>${cell || '-'}</td>`); trBody += '</tr>';
+        tbody.innerHTML += trBody;
+    });
+}
+
+// Загрузка выпадающих списков для модальных окон
+document.addEventListener('DOMContentLoaded', () => {
+    fetch('/api/guests').then(res => res.json()).then(data => {
+        const rGuest = document.getElementById('revGuest');
+        if(data.rows) data.rows.forEach(g => rGuest.innerHTML += `<option value="${g[0]}">${g[1]} ${g[2]}</option>`);
+    });
+    fetch('/api/select_employees').then(res => res.json()).then(data => {
+        const sEmp = document.getElementById('salEmp');
+        if(data.employees) data.employees.forEach(e => sEmp.innerHTML += `<option value="${e.id}">${e.name}</option>`);
+    });
+});
+
+function loadCheckouts() { fetch('/api/reports/checkouts').then(res => res.json()).then(data => fillTable('table-checkouts', ['ID', 'Гость', 'Номер', 'Дата выезда'], data.rows)); }
+function loadArchive() { fetch('/api/reports/archive').then(res => res.json()).then(data => fillTable('table-archive', ['ID', 'Гость', 'Номер', 'Заезд', 'Выезд'], data.rows)); }
+function searchBooking() { const q = document.getElementById('searchQuery').value; fetch(`/api/reports/search_booking?q=${encodeURIComponent(q)}`).then(res => res.json()).then(data => fillTable('table-search', ['ID', 'Гость', 'Организация', 'Номер', 'Заезд', 'Выезд', 'Статус'], data.rows)); }
+function searchRoom() { const q = document.getElementById('roomQuery').value; fetch(`/api/reports/room_info?room_number=${encodeURIComponent(q)}`).then(res => res.json()).then(data => fillTable('table-room', ['Номер', 'Категория', 'Мест', 'Цена', 'Статус', 'Текущий гость'], data.rows)); }
+function loadReviews() { fetch('/api/reports/reviews').then(res => res.json()).then(data => fillTable('table-reviews', ['ID', 'Гость', 'Номер', 'Оценка', 'Дата', 'Текст'], data.rows)); }
+function loadSalary() { fetch('/api/reports/salary').then(res => res.json()).then(data => fillTable('table-salary', ['Сотрудник', 'Должность', 'Месяц', 'Премия', 'Вычет', 'Итого'], data.rows)); }
+
+function loadAnalytics(id) {
+    fetch(`/api/analytics/report/${id}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        fillTable('table-analytics', data.columns, data.rows);
+    });
+}
+
+// Функция динамической загрузки фонда
+function loadLoadReport() {
+    const start = document.getElementById('loadStart').value;
+    const end = document.getElementById('loadEnd').value;
+    if(!start || !end) { alert("Выберите даты начала и конца периода!"); return; }
+    
+    fetch(`/api/analytics/load_report?start=${start}&end=${end}`)
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) { alert(data.error); return; }
+        fillTable('table-analytics', data.columns, data.rows);
+    });
+}
+
+// Отправка форм
+document.getElementById('reviewForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = { guest_id: document.getElementById('revGuest').value, room_number: document.getElementById('revRoom').value, rating: document.getElementById('revRating').value, review_text: document.getElementById('revText').value };
+    fetch('/api/reviews', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) })
+    .then(res => res.json()).then(d => { if(d.error) alert(d.error); else { alert(d.status); bootstrap.Modal.getInstance(document.getElementById('addReviewModal')).hide(); loadReviews(); } });
+});
+
+document.getElementById('salaryForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = { employee_id: document.getElementById('salEmp').value, month: document.getElementById('salMonth').value, bonus: document.getElementById('salBonus').value, deduction: document.getElementById('salDeduct').value };
+    fetch('/api/salary', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) })
+    .then(res => res.json()).then(d => { if(d.error) alert(d.error); else { alert(d.status); bootstrap.Modal.getInstance(document.getElementById('addSalaryModal')).hide(); loadSalary(); } });
+});
+
+document.addEventListener('DOMContentLoaded', loadCheckouts);
+</script>
+{% endblock %}

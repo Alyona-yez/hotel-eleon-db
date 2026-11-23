@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Приветственный баннер с картинкой отеля -->
+<div class="p-5 mb-4 rounded-4 shadow-sm" style="background: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1542314831-c6a4d1424b94?q=80&w=2000&auto=format&fit=crop') center/cover;">
+    <div class="container-fluid py-5 text-white">
+        <h1 class="display-5 fw-bold mb-3" style="color: white;">Добро пожаловать в систему управления отелем</h1>
+        <p class="col-md-8 fs-5">Информационная система гостиницы «Элеон» позволяет эффективно управлять номерным фондом, отслеживать бронирования и формировать аналитические отчёты.</p>
+    </div>
+</div>
+
+<!-- Блок аналитики (цифры) -->
+<div class="row mb-5">
+    <div class="col-md-4">
+        <div class="card card-custom text-center p-3">
+            <h6 class="text-muted mb-1">Всего гостей в базе</h6>
+            <h2 class="mb-0" id="statGuests">-</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom text-center p-3">
+            <h6 class="text-muted mb-1">Выручка (оплачено)</h6>
+            <h2 class="mb-0 text-success" id="statRevenue">-</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card card-custom text-center p-3">
+            <h6 class="text-muted mb-1">Сейчас в отеле</h6>
+            <h2 class="mb-0 text-primary" id="statStays">-</h2>
+        </div>
+    </div>
+</div>
+
+<h3 class="mb-4">Быстрый доступ</h3>
+
+<!-- Сетка карточек -->
+<div class="row g-4">
+    
+    <!-- 1. Номерной фонд (Доступно всем) -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom h-100 text-center p-4">
+            <div class="card-body d-flex flex-column">
+                <i class="fa-solid fa-bed card-icon"></i>
+                <h5 class="card-title">Номерной фонд</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Просмотр свободных номеров на выбранную дату с учетом броней и текущих проживаний.</p>
+                <a href="/free_rooms" class="btn btn-primary w-100 mt-3">Перейти к отчёту</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. База гостей (НЕ для бухгалтера) -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom h-100 text-center p-4 {% if role == 'accountant' %}opacity-50{% endif %}">
+            <div class="card-body d-flex flex-column">
+                {% if role == 'accountant' %}
+                <i class="fa-solid fa-lock card-icon" style="color: grey;"></i>
+                <h5 class="card-title">База гостей</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Недоступно для вашей роли. Войдите как Администратор или Менеджер.</p>
+                <button class="btn btn-secondary w-100 mt-3" disabled>Заблокировано</button>
+                {% else %}
+                <i class="fa-solid fa-users card-icon"></i>
+                <h5 class="card-title">База гостей</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Просмотр и добавление карточек постояльцев. История их проживаний и услуг.</p>
+                <a href="/guests" class="btn btn-primary w-100 mt-3">Справочник</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Бронирование (НЕ для бухгалтера) -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom h-100 text-center p-4 {% if role == 'accountant' %}opacity-50{% endif %}">
+            <div class="card-body d-flex flex-column">
+                {% if role == 'accountant' %}
+                <i class="fa-solid fa-lock card-icon" style="color: grey;"></i>
+                <h5 class="card-title">Бронирование</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Недоступно для вашей роли. Войдите как Администратор или Менеджер.</p>
+                <button class="btn btn-secondary w-100 mt-3" disabled>Заблокировано</button>
+                {% else %}
+                <i class="fa-solid fa-calendar-plus card-icon"></i>
+                <h5 class="card-title">Бронирование</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Оформление новых броней. Выбор гостя, номера, дат заезда/выезда и организации.</p>
+                <a href="/bookings" class="btn btn-primary w-100 mt-3">Оформить</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Проживания (НЕ для бухгалтера) -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom h-100 text-center p-4 {% if role == 'accountant' %}opacity-50{% endif %}">
+            <div class="card-body d-flex flex-column">
+                {% if role == 'accountant' %}
+                <i class="fa-solid fa-lock card-icon" style="color: grey;"></i>
+                <h5 class="card-title">Проживания</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Недоступно для вашей роли. Войдите как Администратор или Менеджер.</p>
+                <button class="btn btn-secondary w-100 mt-3" disabled>Заблокировано</button>
+                {% else %}
+                <i class="fa-solid fa-key card-icon"></i>
+                <h5 class="card-title">Проживания</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Заселение гостей и выселение с автоматическим формированием счёта на оплату.</p>
+                <a href="/stays" class="btn btn-primary w-100 mt-3">Заезд/Выезд</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. Финансы (НЕ для менеджера) -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom h-100 text-center p-4 {% if role == 'manager' %}opacity-50{% endif %}">
+            <div class="card-body d-flex flex-column">
+                {% if role == 'manager' %}
+                <i class="fa-solid fa-lock card-icon" style="color: grey;"></i>
+                <h5 class="card-title">Финансы</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Недоступно для вашей роли. Войдите как Администратор или Бухгалтер.</p>
+                <button class="btn btn-secondary w-100 mt-3" disabled>Заблокировано</button>
+                {% else %}
+                <i class="fa-solid fa-file-invoice-dollar card-icon"></i>
+                <h5 class="card-title">Финансы</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Просмотр всех выставленных счетов и проведение оплат (карта, наличные, перевод).</p>
+                <a href="/invoices" class="btn btn-primary w-100 mt-3">Список счетов</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. Отчеты (Доступно всем) -->
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom h-100 text-center p-4">
+            <div class="card-body d-flex flex-column">
+                <i class="fa-solid fa-chart-line card-icon"></i>
+                <h5 class="card-title">Отчеты и Поиск</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Выезжающие сегодня, архив за год, поиск по организации и информация по номеру.</p>
+                <a href="/reports" class="btn btn-primary w-100 mt-3">Открыть отчеты</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. SQL-консоль (Только для админа) 
+    <div class="col-md-6 col-lg-4">
+        <div class="card card-custom h-100 text-center p-4 {% if role != 'admin' %}opacity-50{% endif %}">
+            <div class="card-body d-flex flex-column">
+                {% if role != 'admin' %}
+                <i class="fa-solid fa-lock card-icon" style="color: grey;"></i>
+                <h5 class="card-title">SQL-консоль</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Недоступно для вашей роли. Войдите как Администратор, чтобы получить доступ.</p>
+                <button class="btn btn-secondary w-100 mt-3" disabled>Заблокировано</button>
+                {% else %}
+                <i class="fa-solid fa-code card-icon"></i>
+                <h5 class="card-title">SQL-консоль</h5>
+                <p class="card-text text-muted flex-grow-1" style="font-size: 13px;">Прямой доступ к базе данных. Выполнение произвольных SQL-запросов и выгрузка данных.</p>
+                <a href="/sql" class="btn btn-primary w-100 mt-3">Открыть консоль</a>
+                {% endif %}
+            </div>
+        </div>
+    </div> -->
+
+</div>
+
+<script>
+    // Загрузка аналитики
+    document.addEventListener('DOMContentLoaded', () => {
+        fetch('/api/analytics').then(res => res.json()).then(data => {
+            document.getElementById('statGuests').innerText = data.guests;
+            document.getElementById('statRevenue').innerText = data.revenue.toLocaleString() + ' ₽';
+            document.getElementById('statStays').innerText = data.active_stays + ' чел.';
+        });
+    });
+</script>
+{% endblock %}

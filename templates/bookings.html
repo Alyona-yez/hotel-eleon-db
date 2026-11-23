@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <!-- Форма бронирования -->
+    <div class="col-md-4 mb-4">
+        <div class="card card-custom p-4 h-100">
+            <h4 class="mb-3"><i class="fa-solid fa-calendar-plus text-warning"></i> Оформить бронь</h4>
+            
+            <!-- Блок уведомлений -->
+            <div id="messageBox"></div>
+
+            <form id="bookingForm">
+                <div class="mb-3">
+                    <label class="form-label">Гость</label>
+                    <select class="form-select" id="guestSelect" required>
+                        <option value="">Выберите гостя...</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Номер</label>
+                    <select class="form-select" id="roomSelect" required>
+                        <option value="">Выберите номер...</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Организация (если есть)</label>
+                    <input type="text" class="form-control" id="orgInput" placeholder="ООО Ромашка">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Дата заезда</label>
+                    <input type="date" class="form-control" id="checkIn" required>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Дата выезда</label>
+                    <input type="date" class="form-control" id="checkOut" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Забронировать</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Список броней -->
+    <div class="col-md-8">
+        <div class="card card-custom p-4">
+            <h4 class="mb-3"><i class="fa-solid fa-list-check text-warning"></i> Текущие брони</h4>
+            <div class="table-responsive">
+                <table class="table table-hover" id="bookingsTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Гость</th>
+                            <th>Номер</th>
+                            <th>Заезд</th>
+                            <th>Выезд</th>
+                            <th>Организация</th>
+                            <th>Статус</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Показ уведомлений
+function showMessage(text, type) {
+    const box = document.getElementById('messageBox');
+    box.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show py-2">${text}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    setTimeout(() => box.innerHTML = '', 4000);
+}
+
+// Загрузка выпадающих списков
+function loadSelects() {
+    fetch('/api/select_data').then(res => res.json()).then(data => {
+        const guestSelect = document.getElementById('guestSelect');
+        guestSelect.innerHTML = '<option value="">Выберите гостя...</option>';
+        data.guests.forEach(g => guestSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`);
+        
+        const roomSelect = document.getElementById('roomSelect');
+        roomSelect.innerHTML = '<option value="">Выберите номер...</option>';
+        data.rooms.forEach(r => roomSelect.innerHTML += `<option value="${r}">Номер ${r}</option>`);
+    });
+}
+
+// Загрузка списка броней
+function loadBookings() {
+    fetch('/api/bookings').then(res => res.json()).then(data => {
+        const tbody = document.querySelector('#bookingsTable tbody');
+        tbody.innerHTML = '';
+        data.rows.forEach(row => {
+            // Красим статус в зависимости от значения
+            let badgeClass = row[5] === 'активна' ? 'bg-success' : (row[5] === 'отменена' ? 'bg-danger' : 'bg-secondary');
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${row[0]}</td>
+                    <td>${row[1]}</td>
+                    <td>${row[2]}</td>
+                    <td>${row[3]}</td>
+                    <td>${row[4]}</td>
+                    <td>${row[6] || '-'}</td>
+                    <td><span class="badge ${badgeClass}">${row[5]}</span></td>
+                </tr>`;
+        });
+    });
+}
+
+// Обработка формы
+document.getElementById('bookingForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const guestId = document.getElementById('guestSelect').value;
+    const room = document.getElementById('roomSelect').value;
+    const org = document.getElementById('orgInput').value;
+    const checkIn = document.getElementById('checkIn').value;
+    const checkOut = document.getElementById('checkOut').value;
+
+    if (!guestId || !room) {
+        showMessage("Пожалуйста, выберите гостя и номер.", 'danger');
+        return;
+    }
+
+    // Валидация дат
+    if (checkIn >= checkOut) {
+        showMessage("Дата выезда должна быть строго позже даты заезда!", 'danger');
+        return;
+    }
+
+    const data = {
+        guest_id: guestId,
+        room_number: room,
+        organization: org,
+        check_in: checkIn,
+        check_out: checkOut
+    };
+
+    fetch('/api/bookings', {
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'}, 
+        body: JSON.stringify(data)
+    }).then(res => res.json()).then(data => {
+        if (data.error) {
+            showMessage(data.error, 'danger');
+        } else {
+            showMessage(data.status, 'success');
+            document.getElementById('bookingForm').reset();
+            loadBookings();
+        }
+    });
+});
+
+// Загружаем данные при открытии страницы
+document.addEventListener('DOMContentLoaded', () => {
+    loadSelects();
+    loadBookings();
+});
+</script>
+{% endblock %}

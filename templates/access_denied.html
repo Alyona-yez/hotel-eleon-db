@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-6 text-center">
+        <div class="card card-custom p-5 opacity-75" style="background-color: #f8f9fa;">
+            <i class="fa-solid fa-lock text-secondary mb-4" style="font-size: 80px;"></i>
+            <h2 class="text-secondary mb-3">Доступ ограничен</h2>
+            <p class="text-muted fs-5">Эта страница недоступна для вашей текущей роли.</p>
+            
+            <hr class="my-4">
+            
+            <p class="mb-4">Если вам нужен доступ, переключитесь на роль <b>Администратора</b> в правом верхнем углу.</p>
+            <a href="/" class="btn btn-primary px-5">Вернуться на главную</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

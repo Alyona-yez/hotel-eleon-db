@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card card-custom p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="mb-0"><i class="fa-solid fa-file-invoice-dollar text-warning"></i> Финансы и Счета</h3>
+        <span class="badge bg-secondary p-2">Всего счетов: <span id="invoiceCount">0</span></span>
+    </div>
+
+    <div id="messageBox"></div>
+
+    <div class="table-responsive">
+        <table class="table table-hover" id="invoicesTable">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Гость</th>
+                    <th>Номер</th>
+                    <th>Сумма</th>
+                    <th>Дата выставления</th>
+                    <th>Статус</th>
+                    <th>Действие</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Модальное окно оплаты -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white border-0">
+                <h6 class="modal-title"><i class="fa-solid fa-money-bill-wave"></i> Оплата счета</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-2">Сумма к оплате:</p>
+                <h3 class="text-success mb-4" id="payAmountDisplay">0 ₽</h3>
+                <label class="form-label text-muted small mb-1">Способ оплаты</label>
+                <select class="form-select mb-3" id="payMethod">
+                    <option value="карта">Банковская карта</option>
+                    <option value="наличные">Наличные</option>
+                    <option value="перевод">Безналичный перевод</option>
+                </select>
+            </div>
+            <div class="modal-footer border-0 pt-0 justify-content-center">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-success btn-sm" id="confirmPayBtn">Оплатить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showMessage(text, type) {
+    const box = document.getElementById('messageBox');
+    box.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show py-2">${text}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    setTimeout(() => box.innerHTML = '', 4000);
+}
+
+function loadInvoices() {
+    fetch('/api/invoices').then(res => res.json()).then(data => {
+        const tbody = document.querySelector('#invoicesTable tbody');
+        tbody.innerHTML = '';
+        document.getElementById('invoiceCount').innerText = data.rows.length;
+        
+        data.rows.forEach(row => {
+            const isPaid = row[5] === 'оплачен';
+            const badgeClass = isPaid ? 'bg-success' : 'bg-danger';
+            
+            // Форматируем кнопку в зависимости от статуса
+            const actionBtn = isPaid 
+                ? `<button class="btn btn-sm btn-outline-secondary" disabled><i class="fa-solid fa-check"></i> Оплачен</button>`
+                : `<button class="btn btn-sm btn-success" onclick="openPayModal(${row[0]}, ${row[3]})"><i class="fa-solid fa-ruble-sign"></i> Оплатить</button>`;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${row[0]}</td>
+                    <td><strong>${row[1]}</strong></td>
+                    <td>${row[2]}</td>
+                    <td class="fw-bold">${row[3]} ₽</td>
+                    <td>${row[4]}</td>
+                    <td><span class="badge ${badgeClass}">${row[5]}</span></td>
+                    <td>${actionBtn}</td>
+                </tr>`;
+        });
+    });
+}
+
+let currentInvoiceId = null;
+let payModal = null;
+
+function openPayModal(id, amount) {
+    currentInvoiceId = id;
+    document.getElementById('payAmountDisplay').innerText = amount + ' ₽';
+    if (!payModal) payModal = new bootstrap.Modal(document.getElementById('payModal'));
+    payModal.show();
+}
+
+document.getElementById('confirmPayBtn').addEventListener('click', function() {
+    if (!currentInvoiceId) return;
+    const method = document.getElementById('payMethod').value;
+    
+    fetch(`/api/invoices/${currentInvoiceId}/pay`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({method: method})
+    })
+    .then(res => res.json())
+    .then(data => {
+        payModal.hide();
+        if (data.error) showMessage(data.error, 'danger');
+        else { showMessage(data.status, 'success'); loadInvoices(); }
+        currentInvoiceId = null;
+    });
+});
+
+document.addEventListener('DOMContentLoaded', loadInvoices);
+</script>
+{% endblock %}

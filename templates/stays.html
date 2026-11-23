@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card card-custom p-4 h-100">
+            <h4 class="mb-3"><i class="fa-solid fa-key text-warning"></i> Заселить гостя</h4>
+            <div id="messageBox"></div>
+            <form id="checkInForm">
+                <div class="mb-3">
+                    <label class="form-label">Гость</label>
+                    <select class="form-select" id="guestSelect" required>
+                        <option value="">Выберите гостя...</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label">Номер (только свободные)</label>
+                    <select class="form-select" id="roomSelect" required>
+                        <option value="">Выберите номер...</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">Заселить (Check-in)</button>
+            </form>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card card-custom p-4">
+            <h4 class="mb-3"><i class="fa-solid fa-person-walking-luggage text-warning"></i> Текущие постояльцы</h4>
+            <div class="table-responsive">
+                <table class="table table-hover" id="staysTable">
+                    <thead><tr><th>ID</th><th>Гость</th><th>Номер</th><th>Дата заезда</th><th>Действие</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showMessage(text, type) {
+    const box = document.getElementById('messageBox');
+    box.innerHTML = `<div class="alert alert-${type} alert-dismissible fade show py-2">${text}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>`;
+    setTimeout(() => box.innerHTML = '', 5000);
+}
+
+function loadSelects() {
+    fetch('/api/select_data').then(res => res.json()).then(data => {
+        const guestSelect = document.getElementById('guestSelect');
+        guestSelect.innerHTML = '<option value="">Выберите гостя...</option>';
+        data.guests.forEach(g => guestSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`);
+        
+        const roomSelect = document.getElementById('roomSelect');
+        roomSelect.innerHTML = '<option value="">Выберите номер...</option>';
+        data.rooms.forEach(r => roomSelect.innerHTML += `<option value="${r}">Номер ${r}</option>`);
+    });
+}
+
+function loadStays() {
+    fetch('/api/stays').then(res => res.json()).then(data => {
+        const tbody = document.querySelector('#staysTable tbody');
+        tbody.innerHTML = '';
+        data.rows.forEach(row => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${row[0]}</td><td><strong>${row[1]}</strong></td><td>${row[2]}</td><td>${row[3]}</td>
+                    <td><button class="btn btn-sm btn-warning" onclick="checkout(${row[0]}, '${row[1]}')"><i class="fa-solid fa-arrow-right-from-bracket"></i> Выселить</button></td>
+                </tr>`;
+        });
+    });
+}
+
+document.getElementById('checkInForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const data = {
+        guest_id: document.getElementById('guestSelect').value,
+        room_number: document.getElementById('roomSelect').value
+    };
+    fetch('/api/stays', {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+    }).then(res => res.json()).then(data => {
+        if (data.error) showMessage(data.error, 'danger');
+        else { showMessage(data.status, 'success'); loadSelects(); loadStays(); }
+    });
+});
+
+function checkout(stay_id, name) {
+    if (!confirm(`Вы уверены, что хотите выселить гостя ${name}? Будет сформирован счет.`)) return;
+    fetch(`/api/checkout/${stay_id}`, { method: 'POST' })
+    .then(res => res.json())
+    .then(data => {
+        if (data.error) alert(data.error);
+        else { alert(data.status); loadSelects(); loadStays(); }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    loadSelects();
+    loadStays();
+});
+</script>
+{% endblock %}
